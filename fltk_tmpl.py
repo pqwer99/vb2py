@@ -79,11 +79,15 @@ hdr_stmt = """# -*- coding: utf8 -*-
 
 from fltk import *
 
-try:
-    from twips import T
-except:
-    def T(twips, dpi=1):     # 1.25
-        return int(twips / 15 * dpi)
+def __getdpi():
+    GetDC = windll.user32.GetDC
+    GetDeviceCaps = windll.gdi32.GetDeviceCaps
+    LOGPIXELSX = 88        #  Logical pixels/inch in X
+    return GetDeviceCaps(GetDC(None), LOGPIXELSX) / 96.0     # 96为设备绘制为100%大小时dpi
+DPI = __getdpi()
+
+def T(twips, dpi=DPI):
+    return int(twips / 15 * dpi)
 
 """
 
