@@ -77,6 +77,8 @@ fltk_widgets = {
 
 hdr_stmt = """# -*- coding: utf8 -*-
 
+from ctypes import windll
+
 from fltk import *
 
 def __getdpi():

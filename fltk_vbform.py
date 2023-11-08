@@ -302,7 +302,7 @@ class PyFltkWin(VbFormParser):
             label = ctrl_attrs.get('caption', None)
             tooltiptext = ctrl_attrs.get('tooltiptext', '')
 
-            widget_stmt = 'self.{} = {}(T({}+{}), T({}+{}), T({}), T({}), {})'.format(ctrl, '{}', x, dx, y, dy, w, h, label)
+            widget_stmt = 'self.{} = {}(T({}), T({}), T({}), T({}), {})'.format(ctrl, '{}', x+dx, y+dy, w, h, label)
             # now: widget_stmt = 'self.ctrl = {}(T(x+dx), T(y+dy), T(w), T(h), label)'
 
             if vb_type == 'tabdlg.sstab':
@@ -326,7 +326,7 @@ class PyFltkWin(VbFormParser):
                     v = user_class(tag)
                     if v:    # 有自定义类
                         kls, kls_inh = v
-                        stmt = 'self.{} = {}(x=T({}+{}), y=T({}+{}), w=T({}), h=T({}), l={})'.format(ctrl, kls, x, dx, y, dy, w, h, label)
+                        stmt = 'self.{} = {}(x=T({}), y=T({}), w=T({}), h=T({}), l={})'.format(ctrl, kls, x+dx, y+dy, w, h, label)
                         if kls not in self.user_class:
                             self.user_class.add(kls)
                             self.kls_stmts.append(kls_stmt.format(kls, kls_inh))
@@ -413,11 +413,11 @@ class PyFltkWin(VbFormParser):
             elif vb_type == 'vb.combobox':
                 if ctrl_attrs.get('style', '0') == '0':     # dropdown combo 可编辑
 ##                    self.win_stmts.append(I(i) + widget_stmt.format('Fl_Input_Choice'))
-                    self.win_stmts.append(I(i) + 'self.{} = Fl_Input_Choice(T({}+{}), T({}+{}), T({}), T(self._ComboBoxH))'.format(ctrl, x, dx, y, dy, w))
+                    self.win_stmts.append(I(i) + 'self.{} = Fl_Input_Choice(T({}), T({}), T({}), T(self._ComboBoxH))'.format(ctrl, x+dx, y+dy, w))
                     self.win_stmts.append(I(i) + 'self.{}.value({})'.format(ctrl, ctrl_attrs.get('text', '')))
                 else:   # dropdown list 不能编辑
 ##                    self.win_stmts.append(I(i) + widget_stmt.format('Fl_Choice'))
-                    self.win_stmts.append(I(i) + 'self.{} = Fl_Choice(T({}+{}), T({}+{}), T({}), T(self._ComboBoxH))'.format(ctrl, x, dx, y, dy, w))
+                    self.win_stmts.append(I(i) + 'self.{} = Fl_Choice(T({}), T({}), T({}), T(self._ComboBoxH))'.format(ctrl, x+dx, y+dy, w))
 
             elif vb_type == 'vb.listbox':
                 if ctrl_attrs.get('style', '0') == '0':     # 0:standard, 1:checkbox
@@ -503,7 +503,7 @@ class PyFltkWin(VbFormParser):
                 fixedrows = int(ctrl_attrs.get('fixedrows', 1))
                 fixedcols = int(ctrl_attrs.get('fixedcols', 1))
                 cls_name = 'Table{}'.format(ctrl.title())
-                cls_table = '{}(T({}+{}), T({}+{}), T({}), T({}), {})'.format(cls_name, x, dx, y, dy, w, h, label)
+                cls_table = '{}(T({}), T({}), T({}), T({}), {})'.format(cls_name, x+dx, y+dy, w, h, label)
                 self.win_stmts.append(I(i) + '# bulid table widget')
                 self.win_stmts.append(I(i) + 'self.{} = {}'.format(ctrl, cls_table))
                 self.win_stmts.append(I(i) + 'if self.{}:'.format(ctrl))
@@ -533,7 +533,7 @@ class PyFltkWin(VbFormParser):
 
 
 if __name__ == '__main__':
-    pycode = PyFltkWin(r'test_form\Form6.frm')
+    pycode = PyFltkWin(r'test_form\Form4.frm')
 
     print(pycode.hdr_stmt)
     print('\n'.join(pycode.win_stmts))
