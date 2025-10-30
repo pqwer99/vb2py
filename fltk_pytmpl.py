@@ -81,6 +81,8 @@ from ctypes import windll
 
 from fltk import *
 
+from fltk_grid import FltkGrid
+
 def __getdpi():
     GetDC = windll.user32.GetDC
     GetDeviceCaps = windll.gdi32.GetDeviceCaps
@@ -97,54 +99,38 @@ app_stmt = """
 class {1}Proc({1}):
     def __init__(self):
         {1}.__init__(self)
+        self.{0}.color(FL_LIGHT2)   # 设置当前窗体颜色
+        # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(0xf0, 0xf0, 0xf0))     # 更改部件默认背景色
+        # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(*Fl.get_color(FL_LIGHT2)))
+        self.resize()
         #
+        # 修改、设置控件属性
         #
+
+    def resize(self):
+        # 调整窗口、控件位置及大小
+        pass
+
+    def start(self, mt=False):
+        self.{0}.callback(self.on_close)
         self.{0}.end()
         self.{0}.show()
+        if mt:
+            #Fl.mt_run(self.{0})
+            while Fl.check(): Fl.wait(0.05)
+        else:
+            Fl.run()
+        #end if
 
-    def run(self):
-        Fl.mt_run(self.{0})
+    def on_close(self, this):
+        # Fl.event()=FL_CLOSE，窗口关闭时执行以下代码
+
+        # this.hide()
+        Fl.fltk_exit()
 
 if __name__ == '__main__':
     app = {1}Proc()
-    app.run()
-"""
-
-tbl_stmt = """
-class {}(Fl_Table_Row):
-    data = []
-    def __init__(self, x, y, w, h, l=None):
-        Fl_Table_Row.__init__(self, x, y, w, h, l)
-        self.end()
-
-    def draw_cell(self, context, r, c, x, y, w, h):
-        fl_push_clip(x, y, w, h)
-
-        if context==self.CONTEXT_STARTPAGE:
-            pass
-        elif context==self.CONTEXT_ROW_HEADER or context==self.CONTEXT_COL_HEADER:
-            fl_draw_box(FL_THIN_UP_BOX, x, y, w, h, self.color())
-            fl_color(FL_BLACK)
-            #fl_draw(data, x, y, w, h, FL_ALIGN_CENTER)
-        elif context==self.CONTEXT_CELL:
-            # BG color
-            if self.row_selected(r):
-                fl_color(self.selection_color())
-            else:
-                fl_color(FL_WHITE)
-            fl_rectf(x, y, w, h)
-            # TEXT
-            fl_color(FL_BLACK)
-            #fl_draw(data, x, y, w, h, FL_ALIGN_CENTER)
-            # BORDER
-            fl_color(FL_LIGHT2)
-            fl_rect(x, y, w, h)
-        else:
-            pass
-        #end if
-
-        fl_pop_clip()
-        return None
+    app.start()
 """
 
 kls_stmt = """
@@ -152,5 +138,3 @@ class {0}({1}):
     def __init__(self, x, y, w, h, l):
         super({0}, self).__init__(x, y, w, h, l)
 """
-
-

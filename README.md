@@ -3,18 +3,17 @@
 pyfltk是一个gui库，是基于开源的C++编写的fltk的python封装。
 fltk主页： https://www.fltk.org/
 pyfltk主页： https://pyfltk.sourceforge.io/
-pyfltk包文件: https://www.lfd.uci.edu/~gohlke/pythonlibs/#pyfltk
 pyfltk可应付一般GUI的需求，Python自带的标准库TKinter写起来手感不好，而其他第三方工具和框架比如wxPython/PyQt/PySide等太大、太复杂。
 
 ## 源文件
-* vbform.py，主界面，将VB的窗体文件转换成Python文件（本身就是自己转换过来的）。
+* vbfltk.py，主界面，将VB的窗体文件转换成Python文件（本身就是自己转换过来的）。
 * fltk_vbform.py，核心代码，对VB窗体文件解析，生成pyfltk窗体和部件代码。
-* fltk_tmpl.py，部分vb转pyfltk代码的模板。
+* fltk_pytmpl.py，部分vb转pyfltk代码的模板。
 * fltk_ext.py，一些pyfltk的扩展功能。
 * dialogbox.py，comdlg32的简单封装。
 
 ## 窗体和菜单
-1. VB的Form会转换成界面类和过程类，如名称为FormTest，则会生成一个界面类class FormTest(object)，包含主窗体self.formtest和其他控件self.ctrlxxx，另一个是过程类class FormMainProc(FormMain)，以后的编码主要是在这个类中进行。若需要自定义类名，可在tag属性中赋值一个符合python命名规则的字符串，如WinMain，则类名为WinMain和WinMainProc。(python建议命名规则：变量名小写，类名驼峰，过程名下划线。)
+1. VB的Form会转换成界面类和过程类，如名称为FormTest，则会生成一个界面类class FormTest(object)，包含主窗体self.formtest和其他控件self.ctrlxxx，另一个是过程类class FormTestProc(FormTest)，以后的编码主要是在这个类中进行。若需要自定义类名，可在tag属性中赋值一个符合python命名规则的字符串，如WinMain，则类名为WinMain和WinMainProc。(python建议命名规则：变量名小写，类名驼峰，过程名下划线。)
 
 2. 窗体菜单只需在菜单编辑器中定义一项，菜单设置和调用需要在过程类中编码。（解析窗体文件时，窗体属性clienttop>600，说明有菜单，菜单高度300twips）
 
@@ -24,7 +23,7 @@ VB控件转换成pyfltk部件，一般格式是：ctrlname = Fl_Xxxx(left, top, 
 例如: self.command1 = Fl_Button(left, top, width, height, '确定')
 * VB有，pyfltk对应很多，(1) 转换成默认部件。(2) 根据VB相应属性设置转换。(3) 根据tag属性值转换。
 * VB有，pyfltk无，则转换成 Fl_Box。
-* VB无，pyfltk有，在设计时一般用PictureBox代替，并在tag属性里设置成pyfltk的部件名。pyfltk的可视部件名称在fltk_tmpl.py中。
+* VB无，pyfltk有，在设计时一般用PictureBox代替，并在tag属性里设置成pyfltk的部件名。pyfltk的可视部件名称在fltk_pytmpl.py中。
 
 
 0. PictureBox
@@ -68,36 +67,43 @@ VB控件转换成pyfltk部件，一般格式是：ctrlname = Fl_Xxxx(left, top, 
 	=Fl_File_Browser()。可用属性multiselect。
 11. Image
     =Fl_Box()。
+12. HScroll, VScroll
+	参照13。
     
 	>以下的控件需要在VB的'控件工具箱'中按右键添加'部件'，选择“Microsoft Windows Common Controls”(mscomctl.ocx 或 comctl32.ocx) 
 
-13. Statusbar    
-    =Fl_Box(x,y,w,h,simpletext)。
-14. ProgressBar    
-    =Fl_Progress()。可用属性mix, max, appearance
-15. TreeView    
-    =Fl_Tree()。
-16. Slider 
+13. Slider
 	可用属性mix, max, smallchange, largechange, value
 	(1) =Fl_Hor_Value_Slider()
-	(2) tag=fl_counter，largechange>0，=Fl_Counter, largechange=0， =Fl_Simple_Counter()。
+	(2) =Fl_Value_Slider())
+14. Statusbar    
+    =Fl_Box(x,y,w,h,simpletext)。
+15. ProgressBar    
+    =Fl_Progress()。可用属性mix, max, appearance
+16. TreeView    
+    =Fl_Tree()。
+17. SpinBox, Spinner    
+	可用属性mix, max, increment, value
+    (1) =Fl_Spinner()
+	(2) =Fl_Counter(),  increment>2时
 
 	>以下的控件需要选择“Microsoft Tabbed Dialog Controls”(tabctl32.ocx)
 	
-17. SSTab    
+18. SSTab    
     =Fl_Tab()。
     这个控件作为容器可直接放入其他控件，比TabStrip好用，内部控件也全部转换成pyfltk部件。
     
 	>以下的控件需要选择“Microsoft FlexGrid Controls”(msflxgrd.ocx)
 	
-16. MSFlexGrid 
+19. FlexGrid 或 ListView
 	可用属性rows, cols, fixedrows, fixedcols。类似于Fl_Table_Row()，但不能直接使用。
 	举例说明：控件名MSFlexGrid1，则会生成类class TableMSFlexGrid1(Fl_Table_Row)，然后赋值给控件self.msflexgrid1 =TableMSFlexGrid1()。
 	对表格操作代码在类TableMSFlexGrid1中。
+	！！！ 现已封装成类FltkGrid(需要文件fltk_grid.py)，grid1 = FltkGrid(x, y, w, h, l)
 
 	>以下的控件需要选择“Microsoft Rich TextBox Controls”(richtx32.ocx)
 	
-16. RichTextBox 
+20. RichTextBox 
 	locked=0， =Fl_Text_Editor()。
 	locked=1， =Fl_Text_Display()。
     也可用TextBox替代，tag in ['fl_text_editor', 'fl_text_display']

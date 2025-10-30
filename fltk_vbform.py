@@ -4,21 +4,23 @@ from __future__ import print_function
 from __future__ import division
 ##from __future__ import unicode_literals
 
+import io
 import re
 import sys
 
-from ctypes import *
+from ctypes import windll
 from pprint import pprint
 from collections import OrderedDict
 
-from fltk_tmpl import fltk_widgets, hdr_stmt, app_stmt, tbl_stmt, kls_stmt
+from fltk import __version__ as fltkver
+
+from fltk_pytmpl import fltk_widgets, hdr_stmt, app_stmt, kls_stmt
 
 __all__ = ['PyFltkWin', 'T']
 
-def user_class(tag):
-    pattern = r'(^\D\w*)\s*\(\s*(\w*)\s*\)'
-    m = re.match(pattern, tag)
-    return m.groups() if m else None
+PY2 = sys.version_info[0]==2
+if PY2:
+    open = io.open
 
 def __getdpi():
     GetDC = windll.user32.GetDC
@@ -29,16 +31,42 @@ def __getdpi():
 
     return GetDeviceCaps(GetDC(None), LOGPIXELSX) / 96.0     # 96为设备绘制为100%大小时dpi
 
-DPI = __getdpi()
+if fltkver >= "1.4":
+    def T(twips):
+        return int(twips / 15)
+else:
+    DPI = __getdpi()
 
-def T(twips, dpi=DPI):
-    return int(twips / 15 * dpi)
+    def T(twips, dpi=DPI):
+        return int(twips / 15 * dpi)
+
+def __getclienttop():
+    GetSystemMetrics = windll.user32.GetSystemMetrics
+    SM_CYFRAME = 33
+    SM_CYCAPTION = 4
+##    SM_CYBORDER = 6
+    SM_CYMENU = 15
+    FrameH = GetSystemMetrics(SM_CYFRAME)     # Total height, Top + Bottom
+    CaptionH = GetSystemMetrics(SM_CYCAPTION)
+##    BorderH = GetSystemMetrics(SM_CYBORDER)   # Border around Client area
+    MenuH = GetSystemMetrics(SM_CYMENU)   # Border around Client area
+    return int(CaptionH + MenuH) * 15
+
+CLIENTTOPWITHMENU = __getclienttop()
+
+def user_class(tag):
+    pattern = r'(^\D\w*)\s*\(\s*(\w*)\s*\)'
+    m = re.match(pattern, tag)
+    return m.groups() if m else None
+
+tabspack = ['sstab', 'sstabex']
+grouppack=['frame', 'splitter']
 
 class VbFormParser(object):
     def __init__(self, filename):
         self.filename = filename
         self.rootwin = None
-        self._MenuBarH = 300  # 菜单高度
+        self._MenuBarH = 300  # 菜单高度 GetSystemMetrics(SM_CYMENU:=15)*15/DPI
 
         self.widgets = dict()    # {widget1:{attr_name:attr_value, ...}, ...}; 每个窗体只允许254个控件名的固定限制
         self.groups = OrderedDict()     # {group1:[(tabindex, ctrl_name), ...], ...}; 最多25层嵌套控件
@@ -47,7 +75,7 @@ class VbFormParser(object):
         self.parse_vbform()
 
     def parse_vbform(self):
-        with open(self.filename) as f:
+        with open(self.filename, encoding="gbk") as f:
             self.__proc_frmfile(f)
 
     def __proc_frmfile(self, f):
@@ -80,9 +108,9 @@ class VbFormParser(object):
                     group = self.__widgetstacks[-2]     # 容器, (-1 = 当前控件 = vb_name)
                     # 增加 控件拥用者属性
                     self.widgets[vb_name].update({'__owner__': group})
-                    if vb_type in ['tabdlg.sstab', 'vb.frame', 'vb.menu']:   # 既是控件也是容器， Begin 嵌套 End
+                    if vb_type.split(".")[1] in tabspack + grouppack + ['menu',]: #['sstab', 'sstabex', 'frame', 'splitter', 'menu']:   # 既是控件也是容器， Begin 嵌套 End
                         self.groups.setdefault(vb_name, [])
-                        if vb_type in ['tabdlg.sstab', 'vb.frame']:
+                        if vb_type.split(".")[1] in tabspack + grouppack: #['sstab', 'sstabex', 'frame', 'splitter']:
                             # 增加 容器偏移量属性
                             dx = self.widgets[group].get('__dx__', 0)
                             dy = self.widgets[group].get('__dy__', 0)
@@ -115,8 +143,9 @@ class VbFormParser(object):
                 attr_name, attr_value = attr[0].strip().lower(), attr[1].strip()
 
                 if attr_name=='clienttop':  # 窗口内的偏移
-                    dy = int(attr_value)    # 600=非Client高度
-                    if dy>600: self.widgets[vb_name]['__dy__'] = self._MenuBarH    # 可能有菜单
+                    clienttop = int(attr_value)
+                    if clienttop >= CLIENTTOPWITHMENU:    # >=840 可能有菜单
+                        self.widgets[vb_name]['__dy__'] = self._MenuBarH
 
                 # 预处理属性值
                 if attr_name in ['caption', 'simpletext', 'text', 'tag', 'tooltiptext']:
@@ -130,16 +159,24 @@ class VbFormParser(object):
                 if attr_name=='left':
                     attr_name = 'x'
                     attr_value = int(attr_value)
+#--------------------------------------------------------------------
+                    attr_value = 0 if attr_value==-15 else attr_value
+#--------------------------------------------------------------------
                     # sstab中，非当前页面控件的left=实际值-75000
-                    attr_value = 75000 + attr_value if attr_value<0 else attr_value
+##                    attr_value = 75000 + attr_value if attr_value<-50000 else attr_value
+                    if attr_value < -50000:
+                        attr_value = 75000 + attr_value
                     # 设置偏移量dx
-                    if vb_type in ['tabdlg.sstab', 'vb.frame']:
+                    if vb_type.split(".")[1] in tabspack + grouppack:   #['sstab', 'sstabex', 'frame', 'splitter']:
                         self.widgets[vb_name]['__dx__'] += attr_value
                 if attr_name=='top':
                     attr_name = 'y'
                     attr_value = int(attr_value)
+#--------------------------------------------------------------------
+                    attr_value = 0 if attr_value==-15 else attr_value
+#--------------------------------------------------------------------
                     # 设置偏移量dy
-                    if vb_type in ['tabdlg.sstab', 'vb.frame']:
+                    if vb_type.split(".")[1] in tabspack + grouppack:   #['sstab', 'sstabex', 'frame', 'splitter']:
                         self.widgets[vb_name]['__dy__'] += attr_value
                 if attr_name in ['width', 'clientwidth']: attr_name = 'w'
                 if attr_name in ['height', 'clientheight']: attr_name = 'h'
@@ -184,8 +221,8 @@ class PyFltkWin(VbFormParser):
         # vb.combobox(默认276|300)的高度不能调整，在fltk中显示太小，= 330
         stmt = 'class {1}(object):\n'  \
                '    def __init__(self):\n' \
-               '        self.{0} = Fl_Window(T({2}), T({3}), {4})\n' \
-               '        self.{0}.color(FL_LIGHT2)\n' \
+               '        self.{0} = Fl_Double_Window(T({2}), T({3}), {4})\n' \
+               '        #\n' \
                '        self._MenuBarH = 300  # MenuBar height\n' \
                '        self._ComboBoxH = 330   # ComboBox extent height\n'
         self.win_stmts.append(stmt.format(self.rootwin, self.winclass, w, h+dy, label))
@@ -201,7 +238,7 @@ class PyFltkWin(VbFormParser):
             w, h = group_attrs.get('w', 0), group_attrs.get('h', 0)
             dx, dy = group_attrs.get('__dx__', 0), group_attrs.get('__dy__', 0)
 
-            if group_attrs['type'] == 'vb.frame':
+            if group_attrs['type'].split(".")[1] in ["frame", "splitter"]: #== 'vb.frame':
                 borderstyle = bool(int(group_attrs.get('borderstyle', 1)))
                 borderstyle = 'FL_ENGRAVED_FRAME' if borderstyle else 'FL_NO_BOX'
                 label = group_attrs.get('caption', '""')
@@ -223,14 +260,15 @@ class PyFltkWin(VbFormParser):
                 self.win_stmts.append('')
             #end if -----> vb.frame
 
-            if group_attrs['type'] == 'tabdlg.sstab':
+##            if group_attrs['type'] == 'tabdlg.sstab':
+            if group_attrs['type'].split(".")[1] in tabspack:   #["sstab", "sstabex"]:
                 tabheight = int(group_attrs.get('tabheight', 300*1.76) / 1.76) # frm/ide=1.76
 
                 sstab = group
                 # 定义 Fl_Tabs
                 stmt = '    def tab_{0}(self):\n'  \
                        '        self.{0} = Fl_Tabs(T({1}), T({2}), T({3}), T({4}))\n' \
-                       '        TabsLabelH = {5}   # Tabs Label height\n'
+                       '        TabHeight = {5}   # Tabs Label Height\n'
                 self.win_stmts.append(stmt.format(sstab, dx, dy, w, h, tabheight))
 
                 # 解析Tab内的控件，对其分页处理
@@ -241,7 +279,7 @@ class PyFltkWin(VbFormParser):
                     label = pagenames[tabpage]
 ##                    print(tabctrls)
                     # 分页
-                    stmt = '        self.{0} = Fl_Group(T({1}), T({2}+TabsLabelH), T({3}), T({4}-TabsLabelH), {5})\n'  \
+                    stmt = '        self.{0} = Fl_Group(T({1}), T({2}+TabHeight), T({3}), T({4}-TabHeight), {5})\n'  \
                            '        if self.{0}:'
                     self.win_stmts.append(stmt.format(tabpage, dx, dy, w, h, label))
 
@@ -297,6 +335,7 @@ class PyFltkWin(VbFormParser):
 ##            appearance = bool(int(ctrl_attrs.get('appearance', 0)))     # 0:Flat, 1:3D
 ##            borderstyle = bool(int(ctrl_attrs.get('borderstyle', 0)))   # 0:None, 1:Fixed Single
 
+            # =====控件基本属性
             x, y = ctrl_attrs.get('x', 0), ctrl_attrs.get('y', 0),
             w, h = ctrl_attrs.get('w', 0), ctrl_attrs.get('h', 0)
             label = ctrl_attrs.get('caption', None)
@@ -305,11 +344,12 @@ class PyFltkWin(VbFormParser):
             widget_stmt = 'self.{} = {}(T({}), T({}), T({}), T({}), {})'.format(ctrl, '{}', x+dx, y+dy, w, h, label)
             # now: widget_stmt = 'self.ctrl = {}(T(x+dx), T(y+dy), T(w), T(h), label)'
 
-            if vb_type == 'tabdlg.sstab':
+            # =====构造控件
+            if vb_type.split(".")[1] in tabspack:   #["sstab", "sstabex"]:
                 self.win_stmts.append(I(i) + '# bulid tabs widget')
                 self.win_stmts.append(I(i) + 'self.tab_{}()'.format(ctrl))
 
-            elif vb_type == 'vb.frame':
+            elif vb_type.split(".")[1] in grouppack:    #['frame', 'spliter']
                 self.win_stmts.append(I(i) + '# bulid group widget')
                 self.win_stmts.append(I(i) + 'self.group_{}()'.format(ctrl))
 
@@ -399,6 +439,7 @@ class PyFltkWin(VbFormParser):
                     #end if -----> fl_light_button
                 else:
                     self.win_stmts.append(I(i) + widget_stmt.format('Fl_Button'))
+                #end if
 
             elif vb_type == 'vb.checkbox':
                 val = int(ctrl_attrs.get('value', 0))   # 0:unchecked 1:checked 2:grayed
@@ -444,7 +485,27 @@ class PyFltkWin(VbFormParser):
                 self.win_stmts.append(I(i) + '# self.{}_bits = [""] # xpm file contents'.format(ctrl))
                 self.win_stmts.append(I(i) + '# self.{0}.image(Fl_Pixmap(self.{0}_bits))'.format(ctrl))
 
-            elif vb_type in ['mscomctllib.statusbar', 'comctllib.statusbar']:
+##            elif vb_type in ['vb.hscroll', 'vb.vscroll']:
+##            elif vb_type in ['mscomctllib.slider', 'comctllib.slider']:
+            elif vb_type.split(".")[1] in ['slider', 'hscroll', 'vscroll']:
+##                selectrange = bool(int(ctrl_attrs.get('selectrange', 0)))     # True/False
+                range_min = int(ctrl_attrs.get('min', 0))
+                range_max = int(ctrl_attrs.get('max', 100))
+                step = int(ctrl_attrs.get('smallchange', 1))
+                lstep = int(ctrl_attrs.get('largechange', 2))
+                value = int(ctrl_attrs.get('value', 0))
+                orientation = int(ctrl_attrs.get('orientation', 0))
+                if orientation==0 or vb_type.split(".")[1]=='hscroll':  # 水平
+                    self.win_stmts.append(I(i) + widget_stmt.format('Fl_Hor_Value_Slider'))
+                else:
+                    self.win_stmts.append(I(i) + widget_stmt.format('Fl_Value_Slider'))
+                #end if
+                self.win_stmts.append(I(i) + 'self.{}.range({}, {})'.format(ctrl, range_min, range_max))
+                self.win_stmts.append(I(i) + 'self.{}.value({})'.format(ctrl, value))
+                self.win_stmts.append(I(i) + 'self.{}.step({})'.format(ctrl, step))
+
+##            elif vb_type in ['mscomctllib.statusbar', 'comctllib.statusbar']:
+            elif vb_type.split(".")[1] in ['statusbar', 'ucstatusbar']:
                 simpletext = ctrl_attrs.get('simpletext', '')
                 self.win_stmts.append(I(i) + widget_stmt.format('Fl_Box'))
                 self.win_stmts.append(I(i) + 'self.{}.box(FL_THIN_DOWN_BOX)'.format(ctrl))
@@ -452,7 +513,8 @@ class PyFltkWin(VbFormParser):
                 if simpletext:
                     self.win_stmts.append(I(i) + 'self.{}.label({})'.format(ctrl, simpletext))
 
-            elif vb_type in ['mscomctllib.progressbar', 'comctllib.progressbar']:
+##            elif vb_type in ['mscomctllib.progressbar', 'comctllib.progressbar']:
+            elif vb_type.split(".")[1] in ['progressbar', 'ucprogressbar']:
                 minimum = int(ctrl_attrs.get('min', 0))
                 maximum = int(ctrl_attrs.get('max', 100))
                 self.win_stmts.append(I(i) + widget_stmt.format('Fl_Progress'))
@@ -462,33 +524,32 @@ class PyFltkWin(VbFormParser):
                 if not appearance:
                     self.win_stmts.append(I(i) + 'self.{}.box(FL_FLAT_BOX)'.format(ctrl) + ' # fltk:323')
 
-            elif vb_type in ['mscomctllib.treeview', 'comctllib.treeview']:
+##            elif vb_type in ['mscomctllib.treeview', 'comctllib.treeview']:
+            elif vb_type.split(".")[1] == 'treeview':
                 self.win_stmts.append(I(i) + widget_stmt.format('Fl_Tree'))
 
-            elif vb_type in ['mscomctllib.slider', 'comctllib.slider']:
-##                selectrange = bool(int(ctrl_attrs.get('selectrange', 0)))     # True/False
-                range_min = int(ctrl_attrs.get('min', 0))
-                range_max = int(ctrl_attrs.get('max', 10))
-                step = int(ctrl_attrs.get('smallchange', 1))
-                lstep = int(ctrl_attrs.get('largechange', 5))
+            elif vb_type.split(".")[1] in ['spinbox', 'spinner']:
+                minimum = int(ctrl_attrs.get('min', 0))
+                maximum = int(ctrl_attrs.get('max', 100))
                 value = int(ctrl_attrs.get('value', 0))
-                if tag_lower=='fl_counter':# or selectrange:
-                    if lstep>0:
-                        self.win_stmts.append(I(i) + widget_stmt.format('Fl_Counter'))
-                        self.win_stmts.append(I(i) + 'self.{}.lstep({})'.format(ctrl, lstep))
-                    else:
-                        self.win_stmts.append(I(i) + widget_stmt.format('Fl_Simple_Counter'))
-                    #end if -----> lstep
+                step = int(ctrl_attrs.get('increment', 1))
+                if step > 2:
+                    self.win_stmts.append(I(i) + widget_stmt.format('Fl_Counter'))
+                    self.win_stmts.append(I(i) + 'self.{}.range({}, {})'.format(ctrl, minimum, maximum))
+                    self.win_stmts.append(I(i) + 'self.{}.value({})'.format(ctrl, value))
+                    self.win_stmts.append(I(i) + 'self.{}.lstep({})'.format(ctrl, step))
+                    self.win_stmts.append(I(i) + 'self.{}.step({})'.format(ctrl, 1))
                 else:
-                    self.win_stmts.append(I(i) + widget_stmt.format('Fl_Hor_Value_Slider'))
+                    self.win_stmts.append(I(i) + widget_stmt.format('Fl_Spinner'))
+                    self.win_stmts.append(I(i) + 'self.{}.minimum({})'.format(ctrl, minimum))
+                    self.win_stmts.append(I(i) + 'self.{}.maximum({})'.format(ctrl, maximum))
+                    self.win_stmts.append(I(i) + 'self.{}.value({})'.format(ctrl, value))
+                    self.win_stmts.append(I(i) + 'self.{}.step({})'.format(ctrl, step))
                 #end if
-                self.win_stmts.append(I(i) + 'self.{}.range({}, {})'.format(ctrl, range_min, range_max))
-                self.win_stmts.append(I(i) + 'self.{}.value({})'.format(ctrl, value))
-                self.win_stmts.append(I(i) + 'self.{}.step({})'.format(ctrl, step))
 
             # vb_type = vb.textbox, tag_lower in ['fl_text_editor', 'fl_text_display']
             # 也可用上面方式
-            elif vb_type == 'richtextlib.richtextbox':
+            elif vb_type.split(".")[1] == 'richtextbox':
                 locked = bool(int(ctrl_attrs.get('locked', 0)))     # True/False
                 if locked:
                     self.win_stmts.append(I(i) + widget_stmt.format('Fl_Text_Display'))
@@ -497,25 +558,28 @@ class PyFltkWin(VbFormParser):
                 self.win_stmts.append(I(i) + 'self.{}_buffer = Fl_Text_Buffer()'.format(ctrl))
                 self.win_stmts.append(I(i) + 'self.{0}.buffer(self.{0}_buffer)'.format(ctrl))
 
-            elif vb_type == 'msflexgridlib.msflexgrid':
-                rows = int(ctrl_attrs.get('rows', 2))
-                cols = int(ctrl_attrs.get('cols', 2))
-                fixedrows = int(ctrl_attrs.get('fixedrows', 1))
-                fixedcols = int(ctrl_attrs.get('fixedcols', 1))
-                cls_name = 'Table{}'.format(ctrl.title())
-                cls_table = '{}(T({}), T({}), T({}), T({}), {})'.format(cls_name, x+dx, y+dy, w, h, label)
-                self.win_stmts.append(I(i) + '# bulid table widget')
-                self.win_stmts.append(I(i) + 'self.{} = {}'.format(ctrl, cls_table))
-                self.win_stmts.append(I(i) + 'if self.{}:'.format(ctrl))
-                self.win_stmts.append(I(i+1) + 'self.{}.selection_color(FL_YELLOW)'.format(ctrl))
-                self.win_stmts.append(I(i+1) + 'self.{}.rows({})'.format(ctrl, rows))
-                self.win_stmts.append(I(i+1) + 'self.{}.cols({})'.format(ctrl, cols))
-                self.win_stmts.append(I(i+1) + 'self.{}.row_header({})'.format(ctrl, fixedrows))
-                self.win_stmts.append(I(i+1) + 'self.{}.col_header({})'.format(ctrl, fixedcols))
-                self.win_stmts.append(I(i+1) + 'self.{}.row_resize({})'.format(ctrl, fixedrows))
-                self.win_stmts.append(I(i+1) + 'self.{}.col_resize({})'.format(ctrl, fixedcols))
+            elif 'flexgrid' in vb_type.split(".")[1] or 'listview' in vb_type.split(".")[1]:
+                self.win_stmts.append(I(i) + widget_stmt.format('FltkGrid'))
 
-                self.tbl_stmts.append(tbl_stmt.format(cls_name))
+##                rows = int(ctrl_attrs.get('rows', 2))
+##                cols = int(ctrl_attrs.get('cols', 2))
+##                fixedrows = int(ctrl_attrs.get('fixedrows', 1))
+##                fixedcols = int(ctrl_attrs.get('fixedcols', 1))
+##                cls_name = 'Table{}'.format(ctrl.title())
+##                cls_table = '{}(T({}), T({}), T({}), T({}), {})'.format(cls_name, x+dx, y+dy, w, h, label)
+##                self.win_stmts.append(I(i) + '# bulid table widget')
+##                self.win_stmts.append(I(i) + 'self.{} = {}'.format(ctrl, cls_table))
+##                self.win_stmts.append(I(i) + 'if self.{}:'.format(ctrl))
+##                self.win_stmts.append(I(i+1) + 'self.{}.selection_color(FL_YELLOW)'.format(ctrl))
+##                self.win_stmts.append(I(i+1) + 'self.{}.col_header_height(24)'.format(ctrl))
+##                self.win_stmts.append(I(i+1) + 'self.{}.row_header(True)'.format(ctrl))
+##                self.win_stmts.append(I(i+1) + 'self.{}.col_header(True)'.format(ctrl))
+##                self.win_stmts.append(I(i+1) + 'self.{}.row_resize(True)'.format(ctrl))
+##                self.win_stmts.append(I(i+1) + 'self.{}.col_resize(True)'.format(ctrl))
+##                self.win_stmts.append(I(i+1) + 'self.{}.rows({})'.format(ctrl, rows))
+##                self.win_stmts.append(I(i+1) + 'self.{}.cols({})'.format(ctrl, cols))
+
+##                self.tbl_stmts.append(tbl_stmt.format(cls_name))
 
             else:
                 self.win_stmts.append(I(i) + widget_stmt.format('Fl_Box'))
@@ -524,6 +588,9 @@ class PyFltkWin(VbFormParser):
                 self.win_stmts.append(I(i) + 'self.{0}.label("{0}")'.format(ctrl))
                 self.win_stmts.append(I(i) + 'pass # {} = {}'.format(ctrl, vb_type))
             #end if -----> vb_type
+
+##            self.win_stmts.append(I(i) + 'self.{}.color(self._NewColor)'.format(ctrl))
+
             if tooltiptext:
                 self.win_stmts.append(I(i) + 'self.{}.tooltip({})'.format(ctrl, tooltiptext))
 
@@ -533,14 +600,12 @@ class PyFltkWin(VbFormParser):
 
 
 if __name__ == '__main__':
-    pycode = PyFltkWin(r'test_form\Form4.frm')
+    pycode = PyFltkWin(r'test_form\Form2.frm')
 
     print(pycode.hdr_stmt)
     print('\n'.join(pycode.win_stmts))
     if pycode.kls_stmts:
         print('\n'.join(pycode.kls_stmts))
-    if pycode.tbl_stmts:
-        print('\n'.join(pycode.tbl_stmts))
     print(pycode.app_stmt)
 
 
