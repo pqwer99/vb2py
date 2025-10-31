@@ -117,7 +117,8 @@ class {1}Proc({1}):
         self.{0}.show()
         if mt:
             #Fl.mt_run(self.{0})
-            while Fl.check(): Fl.wait(0.05)
+            import time
+            while Fl.check(): time.sleep(0.1)  #Fl.wait(0.05)
         else:
             Fl.run()
         #end if

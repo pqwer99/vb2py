@@ -37,7 +37,7 @@ fltkfont = FltkFont(name='微软雅黑', size=18, style=0)
 
 class FormCtypes(object):
     def __init__(self):
-        self.formctypes = Fl_Window(T(12555), T(7815), "api -> ctypes")
+        self.formctypes = Fl_Double_Window(T(12555), T(7815), "api -> ctypes")
         #
         self._MenuBarH = 300  # MenuBar height
         self._ComboBoxH = 330   # ComboBox extent height
@@ -179,7 +179,8 @@ class FormCtypesProc(FormCtypes):
         self.formctypes.show()
         if mt:
             #Fl.mt_run(self.formctypes)
-            while Fl.check(): Fl.wait(0.05)
+            import time
+            while Fl.check(): time.sleep(0.1)  #Fl.wait(0.05)
         else:
             Fl.run()
         #end if

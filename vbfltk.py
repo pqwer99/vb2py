@@ -23,7 +23,7 @@ mainfont = FltkFont(name='微软雅黑', size=18, style=0)
 
 class FormFltk(object):
     def __init__(self):
-        self.formfltk = Fl_Window(T(12555), T(7815), "VB.Form -> pyfltk")
+        self.formfltk = Fl_Double_Window(T(12555), T(7815), "VB.Form -> pyfltk")
         #
         self._MenuBarH = 300  # MenuBar height
         self._ComboBoxH = 330   # ComboBox extent height
@@ -187,7 +187,8 @@ class FormFltkProc(FormFltk):
         self.formfltk.show()
         if mt:
             #Fl.mt_run(self.formfltk)
-            while Fl.check(): Fl.wait(0.05)
+            import time
+            while Fl.check(): time.sleep(0.1)  #Fl.wait(0.05)
         else:
             Fl.run()
         #end if
