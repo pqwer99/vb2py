@@ -64,39 +64,17 @@ class Print2Fltk(object):
 ##        Fl.flush()
 
     def write(self, output_stream):
-        output_stream = fltktext(output_stream)     #转换成pyfltk的字符串
-        buff = self.text_ctrl.buffer()
-        buff.append(output_stream)
-        self.text_ctrl.scroll(buff.length(), 1)
-
-
-class StatusBar(Fl_Box):
-    def __init__(self, x, y, w, h):
-        Fl_Box.__init__(self, x, y, w, h, None)
-##        self.box(FL_PLASTIC_THIN_UP_BOX)
-        self.box(FL_THIN_DOWN_BOX)
-        self.align(FL_ALIGN_LEFT + FL_ALIGN_INSIDE)
-        self._simpletext = "StatusBar"
-
-    def flush(self):    # PY3 必须有
-        pass            # Fl_Box不需要
-
-    def label(self, txtstr=None):
-        if txtstr is None:
-            return self._simpletext
-        else:
-            txtstr = fltktext(txtstr)     #转换成pyfltk的字符串
-            Fl_Box.label(self, txtstr)
-            self._simpletext = txtstr
-        #end if
-
-    def write(self, txtstr):
-        # print(arg1, arg2, ...)重定向过来时会依次传入
-        # arg1, sep=' ', arg2, ..., argn, end='\n'
-        # 因此只有argn有效，并且要忽略end, 默认是'\n'
-##        print(repr(txtstr))
-        if txtstr != '\n':
-            self.label(txtstr)
+        text = fltktext(output_stream)     #转换成pyfltk的字符串
+        if isinstance(self.text_ctrl, (fltk.Fl_Text_Editor, fltk.Fl_Text_Display)):
+            buff = self.text_ctrl.buffer()
+            buff.append(text)
+            self.text_ctrl.scroll(buff.length(), 1)
+        elif isinstance(self.text_ctrl, fltk.Fl_Box):
+            # print(arg1, arg2, ...)重定向过来时会依次传入
+            # arg1, sep=' ', arg2, ..., argn, end='\n'
+            # 因此只有argn有效，并且要忽略end, 默认是'\n'
+    ##        print(repr(txtstr))
+            if text != '\n': self.text_ctrl.label(text)
 
 
 class Cmd4Fltk(object):
@@ -211,7 +189,9 @@ if __name__ == '__main__':
             self.button_2 = Fl_Button(140, 20, 100, 30, 'Button2')
             self.button_3 = Fl_Button(260, 20, 100, 30, fltktext(u'字体列表'))
 
-            self.stat_1 = StatusBar(0, self.mainform.h()-30, self.mainform.w(), 30) #, 'rthfdghdfhgfghdfgdfgdfg')
+            self.stat_1 = Fl_Box(0, self.mainform.h()-30, self.mainform.w(), 30) #, 'rthfdghdfhgfghdfgdfgdfg')
+            self.stat_1.box(FL_THIN_DOWN_BOX)
+            self.stat_1.align(FL_ALIGN_LEFT + FL_ALIGN_INSIDE)
             self.stat_1.label('状态栏！！！')
 
             self.text_log = Fl_Text_Display(0, 80, self.mainform.w(), self.mainform.h()-80-self.stat_1.h())
@@ -243,7 +223,7 @@ if __name__ == '__main__':
             if this is self.button_1:
                 print('中文')
                 print(u"u' 中文")
-                print(u'打印状态栏', file=self.stat_1)
+                print(u'打印状态栏', file=Print2Fltk(self.stat_1))
     ##            self.stat_1.label('utf8 中文')
             elif this is self.button_2:
                 print(self.button_2.label())
@@ -253,7 +233,7 @@ if __name__ == '__main__':
                     fnt = Fl.get_font_name(i)
                     fontname = fnt[0].decode('utf8') if PY2 else fnt[0]
                     print(i, fontname, fnt[1])
-                    print(self.button_3.label(), file=self.stat_1)
+                    print(self.button_3.label(), file=Print2Fltk(self.stat_1))
                 #end for
             #end if
 

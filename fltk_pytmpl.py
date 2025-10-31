@@ -81,6 +81,7 @@ from ctypes import windll
 
 from fltk import *
 
+from fltk_ext import Print2Fltk, Cmd4Fltk, FltkFont
 from fltk_grid import FltkGrid
 
 def __getdpi():

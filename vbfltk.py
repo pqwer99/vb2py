@@ -32,9 +32,9 @@ class FormFltk(object):
         self.text1.value("Text1")
         self.command1 = Fl_Button(T(315), T(210), T(1800), T(360), "选择文件")
         # bulid tabs widget
-        self.tab_sstab1()
+        self.createtabs_sstab1()
 
-    def tab_sstab1(self):
+    def createtabs_sstab1(self):
         self.sstab1 = Fl_Tabs(T(45), T(795), T(12465), T(6975))
         TabHeight = 330   # Tabs Label height
 

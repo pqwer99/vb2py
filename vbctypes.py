@@ -43,9 +43,9 @@ class FormCtypes(object):
         self._ComboBoxH = 330   # ComboBox extent height
 
         # bulid tabs widget
-        self.tab_sstab1()
+        self.createtabs_sstab1()
 
-    def tab_sstab1(self):
+    def createtabs_sstab1(self):
         self.sstab1 = Fl_Tabs(T(30), T(30), T(12480), T(7740))
         TabsLabelH = 330   # Tabs Label height
 

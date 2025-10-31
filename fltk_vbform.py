@@ -244,7 +244,7 @@ class PyFltkWin(VbFormParser):
                 label = group_attrs.get('caption', '""')
 
                 frame = group
-                stmt = '    def group_{0}(self):\n'  \
+                stmt = '    def creategroup_{0}(self):\n'  \
                        '        self.{0} = Fl_Group(T({1}), T({2}), T({3}), T({4}), {5})\n' \
                        '        self.{0}.box({6})\n' \
                        '        self.{0}.align(FL_ALIGN_TOP_LEFT + FL_ALIGN_INSIDE)\n' \
@@ -266,7 +266,7 @@ class PyFltkWin(VbFormParser):
 
                 sstab = group
                 # 定义 Fl_Tabs
-                stmt = '    def tab_{0}(self):\n'  \
+                stmt = '    def createtabs_{0}(self):\n'  \
                        '        self.{0} = Fl_Tabs(T({1}), T({2}), T({3}), T({4}))\n' \
                        '        TabHeight = {5}   # Tabs Label Height\n'
                 self.win_stmts.append(stmt.format(sstab, dx, dy, w, h, tabheight))
@@ -347,11 +347,11 @@ class PyFltkWin(VbFormParser):
             # =====构造控件
             if vb_type.split(".")[1] in tabspack:   #["sstab", "sstabex"]:
                 self.win_stmts.append(I(i) + '# bulid tabs widget')
-                self.win_stmts.append(I(i) + 'self.tab_{}()'.format(ctrl))
+                self.win_stmts.append(I(i) + 'self.createtabs_{}()'.format(ctrl))
 
             elif vb_type.split(".")[1] in grouppack:    #['frame', 'spliter']
                 self.win_stmts.append(I(i) + '# bulid group widget')
-                self.win_stmts.append(I(i) + 'self.group_{}()'.format(ctrl))
+                self.win_stmts.append(I(i) + 'self.creategroup_{}()'.format(ctrl))
 
             elif vb_type ==  'vb.menu':
                 self.win_stmts.append(I(i) + 'self.{} = Fl_Menu_Bar(0, 0, self.{}.w(), T(self._MenuBarH))'.format(ctrl, self.rootwin))
