@@ -65,11 +65,11 @@ class Print2Fltk(object):
 
     def write(self, output_stream):
         text = fltktext(output_stream)     #转换成pyfltk的字符串
-        if isinstance(self.text_ctrl, (fltk.Fl_Text_Editor, fltk.Fl_Text_Display)):
+        if isinstance(self.text_ctrl, (Fl_Text_Editor, Fl_Text_Display)):
             buff = self.text_ctrl.buffer()
             buff.append(text)
             self.text_ctrl.scroll(buff.length(), 1)
-        elif isinstance(self.text_ctrl, fltk.Fl_Box):
+        elif isinstance(self.text_ctrl, Fl_Box):
             # print(arg1, arg2, ...)重定向过来时会依次传入
             # arg1, sep=' ', arg2, ..., argn, end='\n'
             # 因此只有argn有效，并且要忽略end, 默认是'\n'
