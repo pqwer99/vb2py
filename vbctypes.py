@@ -57,6 +57,9 @@ class FormCtypes(object):
             self.text1_buffer = Fl_Text_Buffer()
             self.text1.buffer(self.text1_buffer)
             self.command3 = Fl_Button(T(4860), T(570), T(1600), T(330), "转换C结构体")
+
+            self.popmenu1 = Fl_Menu_Button(self.text1.x(), self.text1.y(), self.text1.w(), self.text1.h(), '源码')
+            self.popmenu1.type(Fl_Menu_Button.POPUP3)
         self.sstab1_page0.end()
 
         self.sstab1_page1 = Fl_Group(T(30), T(30+TabsLabelH), T(12480), T(7740-TabsLabelH), " Python代码 ")
@@ -64,6 +67,9 @@ class FormCtypes(object):
             self.text2 = Fl_Text_Editor(T(90), T(390), T(12375), T(7335), None)
             self.text2_buffer = Fl_Text_Buffer()
             self.text2.buffer(self.text2_buffer)
+
+            self.popmenu2 = Fl_Menu_Button(self.text2.x(), self.text2.y(), self.text2.w(), self.text2.h(), 'Python代码')
+            self.popmenu2.type(Fl_Menu_Button.POPUP3)
         self.sstab1_page1.end()
 
         self.sstab1.end()
@@ -78,9 +84,6 @@ class FormCtypesProc(FormCtypes):
         #
         # 修改、设置控件属性
         #
-        fltkfont.set(self.text1, self.text2)
-##        self.sstab1.selection_color(7)
-
 ##        self.mnu_edit =  (
 ##            ("Undo",        0, self.undo_cb, self.text_log_buff, FL_MENU_DIVIDER ),
 ##            ("Cu&t",        FL_CTRL + ord('x'), self.cut_cb, self.text1 ),
@@ -89,20 +92,23 @@ class FormCtypesProc(FormCtypes):
 ##            ("&Delete",     0,                  self.delete_cb, self.text1 ),
 ##            (None,) )
         self.mnu_edit =  (
-            ("撤消", 0, 0, 0, FL_MENU_DIVIDER ),
-            ("剪切(&t)", FL_CTRL + ord('x') ),
-            ("&Copy", FL_CTRL + ord('c')),
-            ("&Paste", FL_CTRL + ord('v'), 0),
-            ("&Delete", 0, 0),
+            ("撤消", FL_CTRL + ord('z'), 0, 0, FL_MENU_DIVIDER ),
+            ("剪切", FL_CTRL + ord('x') ),
+            ("复制", FL_CTRL + ord('c')),
+            ("粘贴", FL_CTRL + ord('v'), 0, 0, FL_MENU_DIVIDER),
+            ("删除", 0, 0),
             (None,) )
-        self.popmenu1 = Fl_Menu_Button(self.text1.x(), self.text1.y(), self.text1.w(), self.text1.h())
-        self.popmenu1.type(Fl_Menu_Button.POPUP3)
         self.popmenu1.copy(self.mnu_edit)
+        self.popmenu2.copy(self.mnu_edit)
         self.popmenu1.callback(self.menu_callback, self.text1)
+        self.popmenu2.callback(self.menu_callback, self.text2)
         #
         self.command1.callback(self.cb_selfile)
         self.command2.callback(self.cb_vbapi)
         self.command3.callback(self.cb_struct)
+
+        fltkfont.set(self.text1, self.text2, self.popmenu1, self.popmenu2)
+##        self.sstab1.selection_color(7)
 
     def resize(self):
         # 调整窗口、控件位置及大小
@@ -189,6 +195,7 @@ class FormCtypesProc(FormCtypes):
         # Fl.event()=FL_CLOSE，窗口关闭时执行以下代码
 
         # this.hide()
+##        print(this.label())
         Fl.fltk_exit()
 
 if __name__ == '__main__':
