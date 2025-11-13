@@ -21,9 +21,6 @@ if PY2:
 
 PY3 = sys.version_info[0] == 3
 
-fltkfont = FltkFont(name='微软雅黑', size=18, style=0)
-##fltkfont = FltkFont(name='宋体', size=16, style=0)
-
 ##def __getdpi():
 ##    from ctypes import windll
 ##    GetDC = windll.user32.GetDC
@@ -77,10 +74,11 @@ class FormCtypes(object):
 class FormCtypesProc(FormCtypes):
     def __init__(self):
         FormCtypes.__init__(self)
-        self.formctypes.color(FL_LIGHT2)   # 当前窗体颜色
-        # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(0xf0, 0xf0, 0xf0))     # 更改部件默认背景色
+        # 设置窗体背景色
+        self.formctypes.color(FL_LIGHT2)
+        # 更改部件默认背景色
+        # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(0xf0, 0xf0, 0xf0))
         # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(*Fl.get_color(FL_LIGHT2)))
-        self.resize()
         #
         # 修改、设置控件属性
         #
@@ -107,8 +105,12 @@ class FormCtypesProc(FormCtypes):
         self.command2.callback(self.cb_vbapi)
         self.command3.callback(self.cb_struct)
 
-        fltkfont.set(self.text1, self.text2, self.popmenu1, self.popmenu2)
 ##        self.sstab1.selection_color(7)
+
+        # 设置控件字体
+        fltkfont = FltkFont(name='微软雅黑', size=18, style=0)
+        fltkfont(self.text1, self.text2)
+        fltkfont(self.popmenu1, self.popmenu2, size=20)
 
     def resize(self):
         # 调整窗口、控件位置及大小
@@ -180,6 +182,7 @@ class FormCtypesProc(FormCtypes):
         self.text2.activate()
 
     def start(self, mt=False):
+        self.resize()
         self.formctypes.callback(self.on_close)
         self.formctypes.end()
         self.formctypes.show()
@@ -191,11 +194,9 @@ class FormCtypesProc(FormCtypes):
             Fl.run()
         #end if
 
-    def on_close(self, this):
-        # Fl.event()=FL_CLOSE，窗口关闭时执行以下代码
-
+    def on_close(self, this):   # Fl.event()=FL_CLOSE，窗口关闭时执行以下代码
         # this.hide()
-##        print(this.label())
+        # sys.exit(0)
         Fl.fltk_exit()
 
 if __name__ == '__main__':

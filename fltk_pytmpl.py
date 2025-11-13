@@ -100,10 +100,11 @@ app_stmt = """
 class {1}Proc({1}):
     def __init__(self):
         {1}.__init__(self)
-        self.{0}.color(FL_LIGHT2)   # 设置当前窗体颜色
-        # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(0xf0, 0xf0, 0xf0))     # 更改部件默认背景色
+        # 设置窗体背景色
+        self.{0}.color(FL_LIGHT2)
+        # 更改部件默认背景色
+        # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(0xf0, 0xf0, 0xf0))
         # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(*Fl.get_color(FL_LIGHT2)))
-        self.resize()
         #
         # 修改、设置控件属性
         #
@@ -113,9 +114,10 @@ class {1}Proc({1}):
         pass
 
     def start(self, mt=False):
-        self.{0}.callback(self.on_close)
+        self.resize()
         self.{0}.end()
         self.{0}.show()
+        self.{0}.callback(self.on_close)
         if mt:
             #Fl.mt_run(self.{0})
             import time
@@ -124,10 +126,9 @@ class {1}Proc({1}):
             Fl.run()
         #end if
 
-    def on_close(self, this):
-        # Fl.event()=FL_CLOSE，窗口关闭时执行以下代码
-
+    def on_close(self, this):   # Fl.event()=FL_CLOSE，窗口关闭时执行以下代码
         # this.hide()
+        # sys.exit(0)
         Fl.fltk_exit()
 
 if __name__ == '__main__':

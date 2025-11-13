@@ -19,8 +19,6 @@ PY2 = sys.version_info[0] == 2
 if PY2:
     open = io.open
 
-mainfont = FltkFont(name='微软雅黑', size=18, style=0)
-
 class FormFltk(object):
     def __init__(self):
         self.formfltk = Fl_Double_Window(T(12555), T(7815), "VB.Form -> pyfltk")
@@ -75,23 +73,27 @@ class FormFltk(object):
 class FormFltkProc(FormFltk):
     def __init__(self):
         FormFltk.__init__(self)
-        self.formfltk.color(FL_LIGHT2)   # 当前窗体颜色
-        # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(0xf0, 0xf0, 0xf0))     # 更改部件默认背景色
+        # 设置窗体背景色
+        self.formfltk.color(FL_LIGHT2)
+        # 更改部件默认背景色
+        # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(0xf0, 0xf0, 0xf0))
         # Fl.set_color(FL_BACKGROUND_COLOR, fl_rgb_color(*Fl.get_color(FL_LIGHT2)))
-        self.resize()
         #
         # 修改、设置控件属性
         #
-##        self.sstab1.selection_color(7)
         self.text1.value('')# r'E:\My PY\Projects\VB6\Form_vb2py.frm')
         self.text4.show_cursor(self.text4.HEAVY_CURSOR)
-        #
-        mainfont.set(self.text2, self.text3, self.text4)
-        #
+
         self.command1.callback(self.cb_selfile)
         self.command2.callback(self.cb_gencode)
         self.command3.callback(self.cb_copyto, self.text4)
         self.command4.callback(self.cb_saveto, self.text4)
+
+##        self.sstab1.selection_color(7)
+
+        # 设置控件字体
+        mainfont = FltkFont(name='微软雅黑', size=18, style=0)
+        mainfont(self.text2, self.text3, self.text4)
 
     def resize(self):
         # 调整窗口、控件位置及大小
@@ -182,6 +184,7 @@ class FormFltkProc(FormFltk):
                 f.write(txt)
 
     def start(self, mt=False):
+        self.resize()
         self.formfltk.callback(self.on_close)
         self.formfltk.end()
         self.formfltk.show()
@@ -193,10 +196,9 @@ class FormFltkProc(FormFltk):
             Fl.run()
         #end if
 
-    def on_close(self, this):
-        # Fl.event()=FL_CLOSE，窗口关闭时执行以下代码
-
+    def on_close(self, this):   # Fl.event()=FL_CLOSE，窗口关闭时执行以下代码
         # this.hide()
+        # sys.exit(0)
         Fl.fltk_exit()
 
 

@@ -158,7 +158,7 @@ class FltkFont(object):
             fl_ctl.labelfont(face + style)
             fl_ctl.labelsize(size)
 
-    def set(self, *ctrls, **fontattrs):
+    def __call__(self, *ctrls, **fontattrs):
         name = fontattrs.get('name', self._fontname)
         size = fontattrs.get('size', self._fontsize)
         style = fontattrs.get('style', self._fontstyle)
@@ -201,7 +201,7 @@ if __name__ == '__main__':
 
             mainfont = FltkFont(name='微软雅黑', size=18, style=0)
 ##            mainfont = FltkFont(name=320, size=18, style=0)
-            mainfont.set(self.button_1, self.button_2, self.text_log, self.stat_1)
+            mainfont(self.button_1, self.button_2, self.text_log, self.stat_1)
 
             bntfont = FltkFont(name='@微软雅黑')
             self.button_3.labelfont(bntfont.font)
